@@ -63,15 +63,15 @@
         }
         NSLog(@"VoipPush Plugin token received: %@", [hexString copy]);
         NSString *token = [hexString copy];
+
+        NSMutableDictionary* pushMessage = [NSMutableDictionary dictionaryWithCapacity:2];
+        [pushMessage setObject:token forKey:@"token"];
+        [pushMessage setObject:credentials.type forKey:@"type"];
+
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:pushMessage];
+        [pluginResult setKeepCallbackAsBool:YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
     }
-
-    NSMutableDictionary* pushMessage = [NSMutableDictionary dictionaryWithCapacity:2];
-    [pushMessage setObject:token forKey:@"token"];
-    [pushMessage setObject:credentials.type forKey:@"type"];
-
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:pushMessage];
-    [pluginResult setKeepCallbackAsBool:YES];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 }
 
 - (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type {
