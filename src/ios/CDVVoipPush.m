@@ -54,9 +54,16 @@
 - (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials: (PKPushCredentials *)credentials forType:(NSString *)type {
     NSLog(@"VoipPush Plugin token received: %@", credentials.token);
 
-    NSString *token = [[[[credentials.token description] stringByReplacingOccurrencesOfString:@"<"withString:@""]
-                        stringByReplacingOccurrencesOfString:@">" withString:@""]
-                       stringByReplacingOccurrencesOfString: @" " withString: @""];
+    NSUInteger len = credentials.token.length;
+    if (len != 0) {
+        const unsigned char *buffer = credentials.token.bytes;
+        NSMutableString *hexString  = [NSMutableString stringWithCapacity:(len * 2)];
+        for (int i = 0; i < len; ++i) {
+            [hexString appendFormat:@"%02x", buffer[i]];
+        }
+        NSLog(@"VoipPush Plugin token received: %@", [hexString copy]);
+        NSString *token = [hexString copy];
+    }
 
     NSMutableDictionary* pushMessage = [NSMutableDictionary dictionaryWithCapacity:2];
     [pushMessage setObject:token forKey:@"token"];
@@ -68,7 +75,7 @@
 }
 
 - (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type {
-	// Process the received push
+    // Process the received push
     NSLog(@"VoipPush Plugin incoming payload: %@", payload.dictionaryPayload);
 
     if ([payload.type isEqualToString:@"PKPushTypeVoIP"]) {
