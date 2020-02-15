@@ -51,28 +51,54 @@
 }
 
 // Handle updated push credentials
-- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials: (PKPushCredentials *)credentials forType:(NSString *)type {
-    NSLog(@"VoipPush Plugin token received: %@", credentials.token);
+// - (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials: (PKPushCredentials *)credentials forType:(NSString *)type {
+//     NSLog(@"VoipPush Plugin token received: %@", credentials.token);
 
-    NSUInteger len = credentials.token.length;
-    if (len != 0) {
-        const unsigned char *buffer = credentials.token.bytes;
-        NSMutableString *hexString  = [NSMutableString stringWithCapacity:(len * 2)];
-        for (int i = 0; i < len; ++i) {
-            [hexString appendFormat:@"%02x", buffer[i]];
-        }
-        NSLog(@"VoipPush Plugin token received: %@", [hexString copy]);
-        NSString *token = [hexString copy];
+//     NSUInteger len = credentials.token.length;
+//     if (len != 0) {
+//         const unsigned char *buffer = credentials.token.bytes;
+//         NSMutableString *hexString  = [NSMutableString stringWithCapacity:(len * 2)];
+//         for (int i = 0; i < len; ++i) {
+//             [hexString appendFormat:@"%02x", buffer[i]];
+//         }
+//         NSLog(@"VoipPush Plugin token received: %@", [hexString copy]);
+//         NSString *token = [hexString copy];
 
-        NSMutableDictionary* pushMessage = [NSMutableDictionary dictionaryWithCapacity:2];
-        [pushMessage setObject:token forKey:@"token"];
-        [pushMessage setObject:credentials.type forKey:@"type"];
+//         NSMutableDictionary* pushMessage = [NSMutableDictionary dictionaryWithCapacity:2];
+//         [pushMessage setObject:token forKey:@"token"];
+//         [pushMessage setObject:credentials.type forKey:@"type"];
 
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:pushMessage];
-        [pluginResult setKeepCallbackAsBool:YES];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+//         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:pushMessage];
+//         [pluginResult setKeepCallbackAsBool:YES];
+//         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+//     }
+// }
+
+
+- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)credentials forType:(NSString *)type{
+    if([credentials.token length] == 0) {
+        NSLog(@"[objC] No device token!");
+        return;
     }
+    
+    //http://stackoverflow.com/a/9372848/534755
+    NSLog(@"[objC] Device token: %@", credentials.token);
+    const unsigned *tokenBytes = [credentials.token bytes];
+    NSString *token = [NSString stringWithFormat:@"%08x%08x%08x%08x%08x%08x%08x%08x",
+                        ntohl(tokenBytes[0]), ntohl(tokenBytes[1]), ntohl(tokenBytes[2]),
+                        ntohl(tokenBytes[3]), ntohl(tokenBytes[4]), ntohl(tokenBytes[5]),
+                        ntohl(tokenBytes[6]), ntohl(tokenBytes[7])];
+    
+    NSMutableDictionary* pushMessage = [NSMutableDictionary dictionaryWithCapacity:2];
+    [pushMessage setObject:token forKey:@"token"];
+    [pushMessage setObject:credentials.type forKey:@"type"];
+    
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:pushMessage];
+    [pluginResult setKeepCallback:[NSNumber numberWithBool:YES]]; //[pluginResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 }
+
+
 
 - (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type {
     // Process the received push
